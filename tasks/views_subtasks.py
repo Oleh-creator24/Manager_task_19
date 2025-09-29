@@ -1,19 +1,39 @@
 # tasks/views_subtasks.py
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
-
+from django.db.models import Q
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status as http_status
 from rest_framework.permissions import AllowAny
 from rest_framework.authentication import SessionAuthentication
-
+from rest_framework.generics import ListAPIView
+from .pagination import SubTaskPagination
 from .models import SubTask, Task, Status
 from .serializers import (
     SubTaskCreateSerializer,
     SubTaskDetailSerializer,
 )
+class SubTaskListView(ListAPIView):
+    queryset = SubTask.objects.all().order_by("-created_at")
+    serializer_class = SubTaskDetailSerializer
+    pagination_class = SubTaskPagination
 
+class SubTaskFilterView(ListAPIView):
+    serializer_class = SubTaskDetailSerializer
+    pagination_class = SubTaskPagination
+
+    def get_queryset(self):
+        qs = SubTask.objects.all().order_by("-created_at")
+        task_name = self.request.query_params.get("task")
+        status_name = self.request.query_params.get("status")
+
+        if task_name:
+            qs = qs.filter(task__title__icontains=task_name)
+        if status_name:
+            qs = qs.filter(status__name__iexact=status_name)
+
+        return qs
 # Отключаем CSRF для удобства тестов из PowerShell/скриптов
 @method_decorator(csrf_exempt, name="dispatch")
 class SubTaskListCreateView(APIView):
