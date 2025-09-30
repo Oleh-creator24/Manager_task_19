@@ -3,6 +3,11 @@ from django.utils import timezone
 from django.core.exceptions import ValidationError
 
 
+
+created_at = models.DateTimeField(auto_now_add=True)
+
+
+
 class Status(models.Model):
     name = models.CharField(max_length=50, unique=True)
 
@@ -15,6 +20,7 @@ class Task(models.Model):
     description = models.TextField(blank=True)
     status = models.ForeignKey(Status, on_delete=models.CASCADE)
     deadline = models.DateTimeField()
+    created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return self.title

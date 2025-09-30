@@ -1,111 +1,49 @@
-# tasks/views_subtasks.py
-from django.utils.decorators import method_decorator
-from django.views.decorators.csrf import csrf_exempt
-from django.db.models import Q
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status as http_status
-from rest_framework.permissions import AllowAny
-from rest_framework.authentication import SessionAuthentication
-from rest_framework.generics import ListAPIView
-from .pagination import SubTaskPagination
-from .models import SubTask, Task, Status
-from .serializers import (
-    SubTaskCreateSerializer,
-    SubTaskDetailSerializer,
-)
-class SubTaskListView(ListAPIView):
+
+from rest_framework import generics, filters
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.pagination import PageNumberPagination
+
+from .models import SubTask
+from .serializers import SubTaskCreateSerializer, SubTaskDetailSerializer
+
+
+# --- Пагинация для SubTasks ---
+class SubTaskPagination(PageNumberPagination):
+    page_size = 5
+    max_page_size = 5
+    page_size_query_param = None
+
+
+# --- Список и создание подзадач ---
+class SubTaskListCreateGenericView(generics.ListCreateAPIView):
+    """
+    GET /api/subtasks/?status__name=In%20Progress&task__title=Project%20A&ordering=-created_at
+    POST /api/subtasks/
+    """
     queryset = SubTask.objects.all().order_by("-created_at")
-    serializer_class = SubTaskDetailSerializer
+    serializer_class = SubTaskCreateSerializer
     pagination_class = SubTaskPagination
 
-class SubTaskFilterView(ListAPIView):
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+
+    filterset_fields = {
+        "status": ["exact"],
+        "status__name": ["iexact"],
+        "deadline": ["gte", "lte"],
+        "task": ["exact"],
+        "task__title": ["icontains"],
+    }
+    search_fields = ["title", "description"]
+    ordering_fields = ["created_at", "deadline"]
+
+
+# --- Деталь, обновление и удаление подзадачи ---
+class SubTaskRetrieveUpdateDestroyGenericView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    GET /api/subtasks/<pk>/
+    PATCH /api/subtasks/<pk>/
+    PUT /api/subtasks/<pk>/
+    DELETE /api/subtasks/<pk>/
+    """
+    queryset = SubTask.objects.all()
     serializer_class = SubTaskDetailSerializer
-    pagination_class = SubTaskPagination
-
-    def get_queryset(self):
-        qs = SubTask.objects.all().order_by("-created_at")
-        task_name = self.request.query_params.get("task")
-        status_name = self.request.query_params.get("status")
-
-        if task_name:
-            qs = qs.filter(task__title__icontains=task_name)
-        if status_name:
-            qs = qs.filter(status__name__iexact=status_name)
-
-        return qs
-# Отключаем CSRF для удобства тестов из PowerShell/скриптов
-@method_decorator(csrf_exempt, name="dispatch")
-class SubTaskListCreateView(APIView):
-    authentication_classes = []        # без SessionAuthentication => нет CSRF
-    permission_classes = [AllowAny]
-
-    def get(self, request):
-        """
-        ?task_id=<int> — вернуть подзадачи конкретной задачи
-        без параметра — вернуть все подзадачи
-        """
-        task_id = request.GET.get('task_id')
-        qs = SubTask.objects.all().select_related('task', 'status')
-        if task_id:
-            qs = qs.filter(task_id=task_id)
-        data = SubTaskDetailSerializer(qs, many=True).data
-        return Response(data, status=http_status.HTTP_200_OK)
-
-    def post(self, request):
-        """
-        Создать подзадачу.
-        Ожидает: title, description?, deadline, task_id, status_id?
-        Поле created_at — read_only (игнорируется, если передать).
-        """
-        serializer = SubTaskCreateSerializer(data=request.data)
-        if serializer.is_valid():
-            subtask = serializer.save()
-            out = SubTaskDetailSerializer(subtask).data
-            return Response(out, status=http_status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=http_status.HTTP_400_BAD_REQUEST)
-
-
-@method_decorator(csrf_exempt, name="dispatch")
-class SubTaskDetailUpdateDeleteView(APIView):
-    authentication_classes = []   # без CSRF
-    permission_classes = [AllowAny]
-
-    def get_object(self, pk):
-        try:
-            return SubTask.objects.select_related('task', 'status').get(pk=pk)
-        except SubTask.DoesNotExist:
-            return None
-
-    def get(self, request, pk: int):
-        obj = self.get_object(pk)
-        if not obj:
-            return Response({"detail": "Not found."}, status=http_status.HTTP_404_NOT_FOUND)
-        return Response(SubTaskDetailSerializer(obj).data, status=http_status.HTTP_200_OK)
-
-    def patch(self, request, pk: int):
-        obj = self.get_object(pk)
-        if not obj:
-            return Response({"detail": "Not found."}, status=http_status.HTTP_404_NOT_FOUND)
-        serializer = SubTaskCreateSerializer(obj, data=request.data, partial=True)
-        if serializer.is_valid():
-            subtask = serializer.save()
-            return Response(SubTaskDetailSerializer(subtask).data, status=http_status.HTTP_200_OK)
-        return Response(serializer.errors, status=http_status.HTTP_400_BAD_REQUEST)
-
-    def put(self, request, pk: int):
-        obj = self.get_object(pk)
-        if not obj:
-            return Response({"detail": "Not found."}, status=http_status.HTTP_404_NOT_FOUND)
-        serializer = SubTaskCreateSerializer(obj, data=request.data, partial=False)
-        if serializer.is_valid():
-            subtask = serializer.save()
-            return Response(SubTaskDetailSerializer(subtask).data, status=http_status.HTTP_200_OK)
-        return Response(serializer.errors, status=http_status.HTTP_400_BAD_REQUEST)
-
-    def delete(self, request, pk: int):
-        obj = self.get_object(pk)
-        if not obj:
-            return Response({"detail": "Not found."}, status=http_status.HTTP_404_NOT_FOUND)
-        obj.delete()
-        return Response(status=http_status.HTTP_204_NO_CONTENT)
