@@ -1,18 +1,9 @@
 # tasks/views_tasks.py
-from rest_framework import generics, filters, status
-from rest_framework.response import Response
+from rest_framework import generics, filters
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework.pagination import PageNumberPagination
 
 from .models import Task
 from .serializers import TaskCreateSerializer, TaskDetailSerializer
-
-
-# --- Пагинация для Tasks ---
-class TaskPagination(PageNumberPagination):
-    page_size = 5
-    max_page_size = 10
-    page_size_query_param = None
 
 
 # --- Список и создание задач ---
@@ -23,7 +14,6 @@ class TaskListCreateGenericView(generics.ListCreateAPIView):
     """
     queryset = Task.objects.all().order_by("-deadline")
     serializer_class = TaskCreateSerializer
-    pagination_class = TaskPagination
 
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
 
@@ -33,7 +23,7 @@ class TaskListCreateGenericView(generics.ListCreateAPIView):
         "deadline": ["gte", "lte"],
     }
     search_fields = ["title", "description"]
-    ordering_fields = ["created_at", "deadline"]
+    ordering_fields = ["created_at", "deadline"]   # ✅ исправлено (created убрал)
 
 
 # --- Деталь, обновление и удаление задачи ---
@@ -54,7 +44,6 @@ class TaskListByDayView(generics.ListAPIView):
     GET /api/tasks-by-day/?day=Monday
     """
     serializer_class = TaskDetailSerializer
-    pagination_class = TaskPagination
 
     def get_queryset(self):
         tasks = Task.objects.all()

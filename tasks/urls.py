@@ -1,5 +1,9 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
+from rest_framework_simplejwt.views import (
+    TokenObtainPairView,
+    TokenRefreshView,
+)
 
 from .views_tasks import (
     TaskListCreateGenericView,
@@ -11,15 +15,19 @@ from .views_subtasks import (
     SubTaskRetrieveUpdateDestroyGenericView,
 )
 from .views_categories import CategoryViewSet
-from . import views  # только для task_list_html и api_task_stats
+from . import views  # для task_list_html и api_task_stats
 
 # --- Роутер для CategoryViewSet ---
 router = DefaultRouter()
 router.register(r"categories", CategoryViewSet, basename="category")
 
 urlpatterns = [
-    # HTML (оставим для теста)
+    # HTML (оставляем для теста)
     path("", views.task_list_html, name="home"),
+
+    # --- JWT Auth ---
+    path("api/token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
+    path("api/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
 
     # --- Tasks (Generic Views) ---
     path("api/tasks/", TaskListCreateGenericView.as_view(), name="task-list-create"),
@@ -32,7 +40,7 @@ urlpatterns = [
     path("api/subtasks/<int:pk>/", SubTaskRetrieveUpdateDestroyGenericView.as_view(),
          name="subtask-detail-update-delete"),
 
-    # --- Статистика (оставляем FBV) ---
+    # --- Статистика (FBV) ---
     path("api/stats/", views.api_task_stats, name="api_task_stats"),
 
     # --- Categories (ViewSet) ---

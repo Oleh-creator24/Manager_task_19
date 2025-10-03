@@ -3,9 +3,8 @@ Django settings for Manager_task_12 project.
 """
 
 from pathlib import Path
-import os
+from datetime import timedelta
 
-# Build paths inside the project
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = 'django-insecure-j%08=jr7v_a7oy&g7xi@ykyh#$&tbvdnyh0vxm#ut0xwk+nzga'
@@ -80,13 +79,24 @@ USE_TZ = True
 STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# ✅ DRF Settings (CursorPagination, 6 объектов на страницу)
+# ✅ DRF + JWT + Глобальная пагинация
 REST_FRAMEWORK = {
-    'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.AllowAny',
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "rest_framework.authentication.SessionAuthentication",  # для админки и DRF UI
+    ],
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.IsAuthenticatedOrReadOnly",
     ],
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.CursorPagination",
-    "PAGE_SIZE": 6,
+    "PAGE_SIZE": 5,   # ✅ изменено с 6 на 5 по заданию
+}
+
+# ✅ SimpleJWT
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
+    "AUTH_HEADER_TYPES": ("Bearer",),
 }
 
 # ✅ Logging
@@ -109,18 +119,15 @@ LOGGING = {
     },
 
     "handlers": {
-        # 1. Console logs (server work)
         "console": {
             "class": "logging.StreamHandler",
             "formatter": "simple",
         },
-        # 2. HTTP request logs → logs/http_logs.log
         "http_file": {
             "class": "logging.FileHandler",
             "filename": LOG_DIR / "http_logs.log",
             "formatter": "verbose",
         },
-        # 3. DB queries logs → logs/db_logs.log
         "db_file": {
             "class": "logging.FileHandler",
             "filename": LOG_DIR / "db_logs.log",
@@ -129,19 +136,16 @@ LOGGING = {
     },
 
     "loggers": {
-        # Main Django server logs → console
         "django": {
             "handlers": ["console"],
             "level": "INFO",
             "propagate": True,
         },
-        # HTTP requests → http_logs.log
         "django.server": {
             "handlers": ["http_file"],
             "level": "INFO",
             "propagate": False,
         },
-        # SQL queries → db_logs.log
         "django.db.backends": {
             "handlers": ["db_file"],
             "level": "DEBUG",

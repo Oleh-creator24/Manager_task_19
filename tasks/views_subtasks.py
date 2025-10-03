@@ -1,17 +1,10 @@
-
+# tasks/views_subtasks.py
 from rest_framework import generics, filters
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework.pagination import PageNumberPagination
+from rest_framework.permissions import IsAuthenticatedOrReadOnly
 
 from .models import SubTask
 from .serializers import SubTaskCreateSerializer, SubTaskDetailSerializer
-
-
-# --- Пагинация для SubTasks ---
-class SubTaskPagination(PageNumberPagination):
-    page_size = 5
-    max_page_size = 5
-    page_size_query_param = None
 
 
 # --- Список и создание подзадач ---
@@ -22,7 +15,7 @@ class SubTaskListCreateGenericView(generics.ListCreateAPIView):
     """
     queryset = SubTask.objects.all().order_by("-created_at")
     serializer_class = SubTaskCreateSerializer
-    pagination_class = SubTaskPagination
+    permission_classes = [IsAuthenticatedOrReadOnly]
 
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
 
@@ -47,3 +40,4 @@ class SubTaskRetrieveUpdateDestroyGenericView(generics.RetrieveUpdateDestroyAPIV
     """
     queryset = SubTask.objects.all()
     serializer_class = SubTaskDetailSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]
