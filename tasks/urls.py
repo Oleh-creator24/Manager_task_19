@@ -1,5 +1,6 @@
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
 
-from django.urls import path
 from .views_tasks import (
     TaskListCreateGenericView,
     TaskRetrieveUpdateDestroyGenericView,
@@ -9,7 +10,12 @@ from .views_subtasks import (
     SubTaskListCreateGenericView,
     SubTaskRetrieveUpdateDestroyGenericView,
 )
+from .views_categories import CategoryViewSet
 from . import views  # только для task_list_html и api_task_stats
+
+# --- Роутер для CategoryViewSet ---
+router = DefaultRouter()
+router.register(r"categories", CategoryViewSet, basename="category")
 
 urlpatterns = [
     # HTML (оставим для теста)
@@ -28,4 +34,7 @@ urlpatterns = [
 
     # --- Статистика (оставляем FBV) ---
     path("api/stats/", views.api_task_stats, name="api_task_stats"),
+
+    # --- Categories (ViewSet) ---
+    path("api/", include(router.urls)),
 ]

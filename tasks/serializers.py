@@ -2,7 +2,7 @@
 from django.utils import timezone
 from rest_framework import serializers
 
-from .models import Task, SubTask, Status
+from .models import Task, SubTask, Status, Category
 
 # Category может быть, а может и не быть — подключаем безопасно
 try:
@@ -180,3 +180,9 @@ if HAS_CATEGORY and Category is not None:
             if self._name_exists(name, exclude_pk=instance.pk):
                 raise serializers.ValidationError({"name": "Категория с таким названием уже существует."})
             return super().update(instance, validated_data)
+
+class CategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Category
+        fields = ["id", "name", "is_deleted", "deleted_at"]
+        read_only_fields = ["is_deleted", "deleted_at"]

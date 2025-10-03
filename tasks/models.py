@@ -1,15 +1,32 @@
 from django.db import models
 from django.utils import timezone
-from django.core.exceptions import ValidationError
-
-
-
-created_at = models.DateTimeField(auto_now_add=True)
-
 
 
 class Status(models.Model):
     name = models.CharField(max_length=50, unique=True)
+
+    def __str__(self):
+        return self.name
+
+
+class CategoryManager(models.Manager):
+    def get_queryset(self):
+        return super().get_queryset().filter(is_deleted=False)
+
+
+class Category(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    is_deleted = models.BooleanField(default=False)
+    deleted_at = models.DateTimeField(null=True, blank=True)
+
+    objects = CategoryManager()      # только активные категории
+    all_objects = models.Manager()   # все категории (включая удалённые)
+
+    def delete(self, using=None, keep_parents=False):
+        """Мягкое удаление"""
+        self.is_deleted = True
+        self.deleted_at = timezone.now()
+        self.save()
 
     def __str__(self):
         return self.name
@@ -22,57 +39,26 @@ class Task(models.Model):
     deadline = models.DateTimeField()
     created_at = models.DateTimeField(auto_now_add=True)
 
+    # 🔥 связь с категорией
+    category = models.ForeignKey(
+        Category,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="tasks"
+    )
+
     def __str__(self):
         return self.title
 
-    # def clean(self):
-    #     """Валидация данных перед сохранением"""
-    #     if self.deadline and self.deadline < timezone.now():
-    #         raise ValidationError('Дедлайн не может быть в прошлом')
-    #
-    #     if not self.title.strip():
-    #         raise ValidationError('Название задачи не может быть пустым')
-    #
-    # def save(self, *args, **kwargs):
-    #     self.clean()
-    #     super().save(*args, **kwargs)
-
-    def short_title(self):
-        """Возвращает укороченное название с ... если длиннее 10 символов"""
-        if len(self.title) > 10:
-            return f"{self.title[:10]}..."
-        return self.title
-
-    short_title.short_description = "Title"
-
 
 class SubTask(models.Model):
+    task = models.ForeignKey(Task, on_delete=models.CASCADE, related_name="subtasks")
     title = models.CharField(max_length=200)
     description = models.TextField(blank=True)
     status = models.ForeignKey(Status, on_delete=models.CASCADE)
     deadline = models.DateTimeField()
-    task = models.ForeignKey(Task, related_name='subtasks', on_delete=models.CASCADE)
-    created_at = models.DateTimeField(auto_now_add=True)  # Добавим поле created_at
+    created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return self.title
-
-    # def clean(self):
-    #     """Валидация данных перед сохранением"""
-    #     if self.deadline and self.deadline < timezone.now():
-    #         raise ValidationError('Дедлайн не может быть в прошлом')
-    #
-    #     if not self.title.strip():
-    #         raise ValidationError('Название подзадачи не может быть пустым')
-    #
-    # def save(self, *args, **kwargs):
-    #     self.clean()
-    #     super().save(*args, **kwargs)
-
-    def short_title(self):
-        """Возвращает укороченное название с ... если длиннее 10 символов"""
-        if len(self.title) > 10:
-            return f"{self.title[:10]}..."
-        return self.title
-
-    short_title.short_description = "Title"
+        return f"{self.task.title} → {self.title}"
