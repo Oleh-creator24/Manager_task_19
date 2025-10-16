@@ -1,48 +1,56 @@
-Manager_task_18  
+#  Менеджер задач (Задание №19)
 
- Реализовано  
+##  Описание проекта
+Проект **Task Manager** — это Django + DRF приложение для управления задачами и подзадачами.  
+Сервис позволяет создавать, обновлять, фильтровать и отслеживать задачи с различными статусами и сроками выполнения.  
 
- 1. JWT-аутентификация  
-- Подключена библиотека **djangorestframework-simplejwt**.  
-- Эндпоинты:  
-  - `POST /api/token/` — получение пары **access** и **refresh** токенов  
-  - `POST /api/token/refresh/` — обновление **access** токена  
-- Авторизация через заголовок:  
+В рамках задания реализовано:
+- Модели **Task**, **SubTask** и **Status**  
+- API для CRUD операций  
+- Подсчёт статистики и фильтрация задач  
+- Поддержка сериализаторов и валидации  
+- Подключение **Swagger-документации (drf-spectacular)** 
+
+---
+
+##  Технологии
+- **Python 3.12**
+- **Django 4.2**
+- **Django REST Framework**
+- **drf-spectacular**
+- **drf-spectacular-sidecar**
+- **SQLite (по умолчанию)**
+
+---
+
+##  Установка и запуск проекта
+
+```bash
+#  Клонировать проект
+git clone https://github.com/Oleh-creator24/Manager_task_19.git
+cd Manager_task_19
+
+#  Создать виртуальное окружение и активировать его
+python -m venv .venv
+.venv\Scripts\activate
+
+#  Установить зависимости
+pip install -r requirements.txt
+# или
+pip install django djangorestframework drf-spectacular drf-spectacular-sidecar
+
+#  Применить миграции
+python manage.py migrate
+
+#  Запустить сервер
+python manage.py runserver
 
 
- 2. Пермишены  
-- CRUD для задач и подзадач доступен только для авторизованных пользователей.  
-- Ошибка при отсутствии токена:  
-```json
-{ "detail": "Authentication credentials were not provided." }
 
-3. Глобальная пагинация
+## Swagger документация
 
-Используется CursorPagination.
+В проекте реализована Swagger-документация через **drf-spectacular**.
 
-На одной странице отображается 5 объектов.
-
-Пример ответа:
-
-{
-  "next": "http://127.0.0.1:8000/api/tasks/?cursor=...",
-  "previous": null,
-  "results": [
-    {
-      "id": 1,
-      "title": "Задача 1",
-      "description": "Описание",
-      "deadline": "2025-10-10T12:00:00Z"
-    }
-  ]
-}
-
-4. Логирование
-
-Логи сохраняются в папку logs/:
-
-http_logs.log — HTTP-запросы
-
-db_logs.log — SQL-запросы
-
-Консоль — работа сервера
+- **Swagger UI:** [http://127.0.0.1:8000/api/docs/](http://127.0.0.1:8000/api/docs/)
+- **ReDoc:** [http://127.0.0.1:8000/api/redoc/](http://127.0.0.1:8000/api/redoc/)
+- **OpenAPI schema:** [http://127.0.0.1:8000/api/schema/](http://127.0.0.1:8000/api/schema/)
